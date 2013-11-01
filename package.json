@@ -1,0 +1,18 @@
+{
+  "author": "Taketoshi Aono(brn) <dobaw20@gmail.com>",
+  "description": "Resolve google-closure-library dependencies.",
+  "repository": {
+    "url": "git@github.com:brn/closure-deps-resolver.git"
+  },
+  "name": "closure-deps-resolver",
+  "version": "0.1.0",
+  "private": false,
+  "engines": {
+    "node": "*"
+  },
+  "dependencies" : {
+    "node-promise" : "*",
+    "dirtree-traversal" : "*",
+    "temp" : "*"
+  }
+}
