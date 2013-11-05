@@ -15,6 +15,7 @@ var DependencyResolver = require('./lib/dependency-resolver');
 var temp = require('temp');
 var pathUtil = require('./lib/pathutil');
 var dirtreeTraversal = require('dirtree-traversal');
+var ModuleRegistry = require('./lib/module_registry');
 
 
 /**
@@ -49,6 +50,7 @@ function ClosureDepsResolver (options) {
   this._excludes = options.excludes;
   this._moduleMap = {};
   this._closureDepsPath = temp.mkdirSync('_gcl_deps') + '/deps.js';
+  this._moduleRegistry = new ModuleRegistry();
   var memo = {};
   this._moduleDependencies = new DependencyResolver(this._moduleMap, memo);
 }
@@ -110,14 +112,16 @@ ClosureDepsResolver.prototype._resolveDependency = function() {
     }
     module.setDependentModules(dep);
   }
+  this._moduleDependencies.clear();
+  this._moduleRegistry.clear();
 };
 
 
 ClosureDepsResolver.prototype.remove = function(filename, cb) {
   var module = this._moduleMap[filename];
   module.getProvidedModules().forEach(function(moduleName) {
-    Module.removeModule(moduleName);
-  });
+    this._moduleRegistry.remove(moduleName);
+  }.bind(this));
   delete this._moduleMap[filename];
 };
 
@@ -156,14 +160,14 @@ ClosureDepsResolver.prototype._processClosureModule = function (resourceInfo) {
   var founded = [];
   while ((match = consts.GOOG_PROVIDE.exec(resourceInfo.trimedContent))) {
     var found = match[1];
-    if (Module.hasModuleInfo(found)) {
-      throw new Error(found + ' is already defined in ' + resourceInfo.filename + '\n' + 'First defined in ' + Module.getModuleInfo(found));
+    if (this._moduleRegistry.hasModuleInfo(found)) {
+      throw new Error(found + ' is already defined in ' + resourceInfo.filename + '\n' + 'First defined in ' + this._moduleRegistry.getModuleInfo(found));
     }
     founded.push(found);
     provided.push(found);
   }
   for (var i = 0, len = founded.length; i < len; i++) {
-    Module.addModuleMap(founded[i], resourceInfo.filename);
+    this._moduleRegistry.add(founded[i], resourceInfo.filename);
   }
   return this._moduleMap[resourceInfo.filename] = new Module(resourceInfo.filename, provided);
 };
