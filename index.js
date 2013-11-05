@@ -169,7 +169,7 @@ ClosureDepsResolver.prototype._processClosureModule = function (resourceInfo) {
   for (var i = 0, len = founded.length; i < len; i++) {
     this._moduleRegistry.add(founded[i], resourceInfo.filename);
   }
-  return this._moduleMap[resourceInfo.filename] = new Module(resourceInfo.filename, provided);
+  return this._moduleMap[resourceInfo.filename] = new Module(resourceInfo.filename, provided, this._moduleRegistry);
 };
 
 
