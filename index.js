@@ -56,14 +56,43 @@ function ClosureDepsResolver (options) {
 }
 
 
-ClosureDepsResolver.prototype.resolve = function() {
+ClosureDepsResolver.prototype.resolve = function(onlyMains) {
   return dirtreeTraversal(this._root, function(filename, cb) {
     this._process(filename, cb);
   }.bind(this), this._excludes, /\.js/)
     .then(this._resolveDependency.bind(this))
     .then(function() {
-      return this._moduleMap;
+      if (onlyMains) {
+        var ret = [];
+        for (var prop in this._moduleMap) {
+          if (this._moduleMap[prop].getProvidedModules().length === 0) {
+            ret.push(this._moduleMap[prop]);
+          }
+        }
+        return ret;
+      } else {
+        return this._moduleMap;
+      }
     }.bind(this));
+};
+
+
+ClosureDepsResolver.prototype.resolveSync = function(onlyMains) {
+  dirtreeTraversal.sync(this._root, function(filename) {
+    this._processSync(filename);
+  }.bind(this), this._excludes, /\.js/);
+  this._resolveDependency();
+  if (onlyMains) {
+    var ret = [];
+    for (var prop in this._moduleMap) {
+      if (this._moduleMap[prop].getProvidedModules().length === 0) {
+        ret.push(this._moduleMap[prop]);
+      }
+    }
+    return ret;
+  } else {
+    return this._moduleMap;
+  }
 };
 
 
@@ -91,6 +120,30 @@ ClosureDepsResolver.prototype._process = function(filename, cb) {
     }
     cb();
   }.bind(this));
+};
+
+
+/**
+ * @override
+ * @param {string} filename
+ */
+ClosureDepsResolver.prototype._processSync = function(filename) {
+  var content = fs.readFileSync(filename, 'utf-8');
+  var trimedContent = trimComment(content);
+  var match;
+  var module = this._processClosureModule({
+        filename : filename,
+        content : content,
+        trimedContent : trimedContent
+      });
+
+  if (module) {
+    while ((match = consts.REQUIRE_REG.exec(trimedContent))) {
+      if (match[1]) {
+        module.addDirectRequiredModule(match[1]);
+      }
+    }
+  }
 };
 
 
