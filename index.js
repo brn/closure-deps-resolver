@@ -46,7 +46,9 @@ function trimComment(str) {
  * @constructor
  */
 function ClosureDepsResolver (options) {
-  this._root = pathUtil.resolve(options.root) + '/';
+  this._root = !Array.isArray(options)? [pathUtil.resolve(options.root) + '/'] : options.root.map(function(root) {
+    return pathUtil.resolve(root);
+  });
   this._excludes = options.excludes;
   this._moduleMap = {};
   this._closureDepsPath = temp.mkdirSync('_gcl_deps') + '/deps.js';
@@ -57,9 +59,11 @@ function ClosureDepsResolver (options) {
 
 
 ClosureDepsResolver.prototype.resolve = function(onlyMains) {
-  return dirtreeTraversal(this._root, function(filename, cb) {
-    this._process(filename, cb);
-  }.bind(this), this._excludes, /\.js/)
+  Promise.all(this._root.map(function() {
+    return dirtreeTraversal(this._root, function(filename, cb) {
+      this._process(filename, cb);
+    }.bind(this), this._excludes, /\.js/);
+  }))
     .then(this._resolveDependency.bind(this))
     .then(function() {
       if (onlyMains) {
