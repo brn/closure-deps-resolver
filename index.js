@@ -60,7 +60,7 @@ function ClosureDepsResolver (options) {
 
 
 ClosureDepsResolver.prototype.resolve = function(onlyMains) {
-  Promise.all(this._root.map(function(path) {
+  return Promise.all(this._root.map(function(path) {
     return dirtreeTraversal(path, function(filename, cb) {
       this._process(filename, cb);
     }.bind(this), this._excludes, /\.js/);
