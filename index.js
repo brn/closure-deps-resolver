@@ -16,6 +16,7 @@ var temp = require('temp');
 var pathUtil = require('./lib/pathutil');
 var dirtreeTraversal = require('dirtree-traversal');
 var ModuleRegistry = require('./lib/module_registry');
+var Promise = require('node-promise');
 
 
 /**
