@@ -63,7 +63,7 @@ ClosureDepsResolver.prototype.resolve = function(onlyMains) {
     return dirtreeTraversal(path, function(filename, cb) {
       this._process(filename, cb);
     }.bind(this), this._excludes, /\.js/);
-  }))
+  }, this))
     .then(this._resolveDependency.bind(this))
     .then(function() {
       if (onlyMains) {
@@ -82,9 +82,11 @@ ClosureDepsResolver.prototype.resolve = function(onlyMains) {
 
 
 ClosureDepsResolver.prototype.resolveSync = function(onlyMains) {
-  dirtreeTraversal.sync(this._root, function(filename) {
-    this._processSync(filename);
-  }.bind(this), this._excludes, /\.js/);
+  this._root.forEach(function() {
+    dirtreeTraversal.sync(this._root, function(filename) {
+      this._processSync(filename);
+    }.bind(this), this._excludes, /\.js/);
+  }, this);
   this._resolveDependency();
   if (onlyMains) {
     var ret = [];
