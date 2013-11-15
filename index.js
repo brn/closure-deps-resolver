@@ -46,7 +46,7 @@ function trimComment(str) {
  * @constructor
  */
 function ClosureDepsResolver (options) {
-  this._root = !Array.isArray(options)? [pathUtil.resolve(options.root) + '/'] : options.root.map(function(root) {
+  this._root = !Array.isArray(options.root)? [pathUtil.resolve(options.root) + '/'] : options.root.map(function(root) {
     return pathUtil.resolve(root);
   });
   this._excludes = options.excludes;
