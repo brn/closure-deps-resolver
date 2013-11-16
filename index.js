@@ -17,6 +17,8 @@ var pathUtil = require('./lib/pathutil');
 var dirtreeTraversal = require('dirtree-traversal');
 var ModuleRegistry = require('./lib/module_registry');
 var Promise = require('node-promise');
+var DefaultDepsParser = require('./lib/default-deps-parser');
+var DepsJsGenerator = require('./lib/deps-js-generator');
 
 
 /**
@@ -52,11 +54,25 @@ function ClosureDepsResolver (options) {
   });
   this._excludes = options.excludes;
   this._moduleMap = {};
-  this._closureDepsPath = temp.mkdirSync('_gcl_deps') + '/deps.js';
+  this._closureDepsPath = options.depsJsPath || temp.mkdirSync('_gcl_deps') + '/deps.js';
   this._moduleRegistry = new ModuleRegistry();
+  this._writeDeps = options.writeDepsJs;
   var memo = {};
   this._moduleDependencies = new DependencyResolver(this._moduleMap, memo);
+  this._closureDepsParser = new (options.depsParser || DefaultDepsParser)(this._moduleRegistry);
+  this._depsJsGenerator = new (options.depsJsGenerator || DepsJsGenerator)(this._closureDepsPath);
 }
+
+
+Object.defineProperties(ClosureDepsResolver.prototype, {
+  depsJsPath : {
+    get : function() {
+      return this._closureDepsPath;
+    },
+    configurable : true,
+    enumerable : false
+  }
+});
 
 
 ClosureDepsResolver.prototype.resolve = function(onlyMains) {
@@ -67,11 +83,15 @@ ClosureDepsResolver.prototype.resolve = function(onlyMains) {
   }, this))
     .then(this._resolveDependency.bind(this))
     .then(function() {
+      if (this._writeDeps) {
+        return this._depsJsGenerator().generate(this._moduleMap);
+      }
+    }).then(function() {
       if (onlyMains) {
-        var ret = [];
+        var ret = {};
         for (var prop in this._moduleMap) {
           if (this._moduleMap[prop].getProvidedModules().length === 0) {
-            ret.push(this._moduleMap[prop]);
+            ret[prop] = this._moduleMap[prop];
           }
         }
         return ret;
@@ -112,19 +132,14 @@ ClosureDepsResolver.prototype._process = function(filename, cb) {
     if (err) throw err;
     var trimedContent = trimComment(content);
     var match;
-    var module = this._processClosureModule({
+    var module = this._closureDepsParser.parseProvidedModule({
           filename : filename,
           content : content,
           trimedContent : trimedContent
         });
 
-    if (module) {
-      while ((match = consts.REQUIRE_REG.exec(trimedContent))) {
-        if (match[1]) {
-          module.addDirectRequiredModule(match[1]);
-        }
-      }
-    }
+    this._moduleMap[filename] = module;
+    this._closureDepsParser.parseRequiredModule(module);
     cb();
   }.bind(this));
 };
@@ -186,7 +201,7 @@ ClosureDepsResolver.prototype.remove = function(filename, cb) {
 };
 
 
-ClosureDepsResolver.prototype.createDepsJsContent = function(module) {
+ClosureDepsResolver.prototype._createDepsJsContent = function(module) {
   var deps = {};
   module.getDependentModules().forEach(function(m) {
     var filename = m.getFilename();
@@ -203,33 +218,6 @@ ClosureDepsResolver.prototype.createDepsJsContent = function(module) {
     code += 'goog.addDependency("' + pathUtil.relative(this._root, prop) + '", [' + deps[prop][0] + '], [' + deps[prop][1] + ']);\n';
   }
   return code;
-};
-
-
-/**
- * process google-closure-libraray style module.
- * @example
- *   goog.provide('foo.bar.baz')
- *   goog.require('foo.bar.Class');
- * @param {!Object} resourceInfo
- * @return {Module}
- */
-ClosureDepsResolver.prototype._processClosureModule = function (resourceInfo) {
-  var match;
-  var provided = [];
-  var founded = [];
-  while ((match = consts.GOOG_PROVIDE.exec(resourceInfo.trimedContent))) {
-    var found = match[1];
-    if (this._moduleRegistry.hasModuleInfo(found)) {
-      throw new Error(found + ' is already defined in ' + resourceInfo.filename + '\n' + 'First defined in ' + this._moduleRegistry.getModuleInfo(found));
-    }
-    founded.push(found);
-    provided.push(found);
-  }
-  for (var i = 0, len = founded.length; i < len; i++) {
-    this._moduleRegistry.add(founded[i], resourceInfo.filename);
-  }
-  return this._moduleMap[resourceInfo.filename] = new Module(resourceInfo.filename, provided, this._moduleRegistry);
 };
 
 
