@@ -19,6 +19,8 @@ var ModuleRegistry = require('./lib/module_registry');
 var Promise = require('node-promise');
 var DefaultDepsParser = require('./lib/default-deps-parser');
 var DepsJsGenerator = require('./lib/deps-js-generator');
+var closurePattern = require('./lib/closure-pattern');
+var DepsCache = require('./lib/deps-cache');
 
 
 /**
@@ -59,7 +61,15 @@ function ClosureDepsResolver (options) {
   this._writeDeps = options.writeDepsJs;
   var memo = {};
   this._moduleDependencies = new DependencyResolver(this._moduleMap, memo);
-  this._closureDepsParser = new (options.depsParser || DefaultDepsParser)(this._moduleRegistry);
+  var pattern;
+  if (!options.pattern) {
+    pattern = closurePattern.pattern;
+  } else {
+    pattern = options.pattern;
+  }
+  pattern.compile();
+  this._depsCache = new DepsCache(options.depsCachePath);
+  this._closureDepsParser = new DefaultDepsParser(this._moduleRegistry, this._depsCache, pattern);
   this._depsJsGenerator = new (options.depsJsGenerator || DepsJsGenerator)(this._closureDepsPath);
 }
 
@@ -75,7 +85,7 @@ Object.defineProperties(ClosureDepsResolver.prototype, {
 });
 
 
-ClosureDepsResolver.prototype.resolve = function(onlyMains) {
+ClosureDepsResolver.prototype.resolve = function(opt_onlyMains) {
   return Promise.all(this._root.map(function(path) {
     return dirtreeTraversal(path, function(filename, cb) {
       this._process(filename, cb);
@@ -86,12 +96,15 @@ ClosureDepsResolver.prototype.resolve = function(onlyMains) {
       if (this._writeDeps) {
         return this._depsJsGenerator().generate(this._moduleMap);
       }
-    }).then(function() {
-      if (onlyMains) {
+    }.bind(this)).then(function() {
+      if (opt_onlyMains) {
         var ret = {};
-        for (var prop in this._moduleMap) {
-          if (this._moduleMap[prop].getProvidedModules().length === 0) {
-            ret[prop] = this._moduleMap[prop];
+        var items = Object.keys(this._moduleMap);
+        for (var i = 0, len = items.length; i < len; i++) {
+          var key = items[i];
+          var item = this._moduleMap[key];
+          if (item.getProvidedModules().length === 0) {
+            ret[key] = item;
           }
         }
         return ret;
@@ -102,18 +115,21 @@ ClosureDepsResolver.prototype.resolve = function(onlyMains) {
 };
 
 
-ClosureDepsResolver.prototype.resolveSync = function(onlyMains) {
+ClosureDepsResolver.prototype.resolveSync = function(opt_onlyMains) {
   this._root.forEach(function() {
     dirtreeTraversal.sync(this._root, function(filename) {
       this._processSync(filename);
     }.bind(this), this._excludes, /\.js/);
   }, this);
   this._resolveDependency();
-  if (onlyMains) {
-    var ret = [];
-    for (var prop in this._moduleMap) {
-      if (this._moduleMap[prop].getProvidedModules().length === 0) {
-        ret.push(this._moduleMap[prop]);
+  if (opt_onlyMains) {
+    var ret = {};
+    var items = Object.keys(this._moduleMap);
+    for (var i = 0, len = items.length; i < len; i++) {
+      var key = items[i];
+      var item = this._moduleMap[key];
+      if (item.getProvidedModules().length === 0) {
+        ret[key] = item;
       }
     }
     return ret;
@@ -128,18 +144,8 @@ ClosureDepsResolver.prototype.resolveSync = function(onlyMains) {
  * @param {string} filename
  */
 ClosureDepsResolver.prototype._process = function(filename, cb) {
-  fs.readFile(filename, 'utf-8', function(err, content) {
-    if (err) throw err;
-    var trimedContent = trimComment(content);
-    var match;
-    var module = this._closureDepsParser.parseProvidedModule({
-          filename : filename,
-          content : content,
-          trimedContent : trimedContent
-        });
-
+  this._closureDepsParser.parse(filename, function(module) {
     this._moduleMap[filename] = module;
-    this._closureDepsParser.parseRequiredModule(module);
     cb();
   }.bind(this));
 };
@@ -153,19 +159,7 @@ ClosureDepsResolver.prototype._processSync = function(filename) {
   var content = fs.readFileSync(filename, 'utf-8');
   var trimedContent = trimComment(content);
   var match;
-  var module = this._processClosureModule({
-        filename : filename,
-        content : content,
-        trimedContent : trimedContent
-      });
-
-  if (module) {
-    while ((match = consts.REQUIRE_REG.exec(trimedContent))) {
-      if (match[1]) {
-        module.addDirectRequiredModule(match[1]);
-      }
-    }
-  }
+  this._moduleMap[filename] = this._closureDepsParser.parseSync(filename);
 };
 
 
@@ -189,6 +183,7 @@ ClosureDepsResolver.prototype._resolveDependency = function() {
   }
   this._moduleDependencies.clear();
   this._moduleRegistry.clear();
+  this._depsCache.writeCache();
 };
 
 
@@ -201,24 +196,7 @@ ClosureDepsResolver.prototype.remove = function(filename, cb) {
 };
 
 
-ClosureDepsResolver.prototype._createDepsJsContent = function(module) {
-  var deps = {};
-  module.getDependentModules().forEach(function(m) {
-    var filename = m.getFilename();
-    deps[filename] = ['', ''];
-    if (m._nameMap.requires.length) {
-      deps[filename][0] = '"' + m._nameMap.requires.join('","') + '"';
-    }
-    if (m._providedModules.length) {
-      deps[filename][0] = '"' + m._providedModules.join('","') + '"';
-    }
-  });
-  var code = '';
-  for (var prop in deps) {
-    code += 'goog.addDependency("' + pathUtil.relative(this._root, prop) + '", [' + deps[prop][0] + '], [' + deps[prop][1] + ']);\n';
-  }
-  return code;
+module.exports = {
+  Resolver : ClosureDepsResolver,
+  closurePattern : closurePattern
 };
-
-
-module.exports = ClosureDepsResolver;

@@ -10,9 +10,13 @@
   "engines": {
     "node": "*"
   },
-  "dependencies" : {
-    "node-promise" : "*",
-    "dirtree-traversal" : "*",
-    "temp" : "*"
+  "dependencies": {
+    "node-promise": "*",
+    "dirtree-traversal": "*",
+    "temp": "*",
+    "esprima": "~1.0.4",
+    "estraverse": "~1.4.0",
+    "pkginfo": "~0.3.0",
+    "node-uuid": "~1.4.1"
   }
 }
