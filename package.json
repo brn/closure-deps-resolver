@@ -17,6 +17,10 @@
     "esprima": "~1.0.4",
     "estraverse": "~1.4.0",
     "pkginfo": "~0.3.0",
-    "node-uuid": "~1.4.1"
+    "node-uuid": "~1.4.1",
+    "esquery": "~0.3.0"
+  },
+  "devDependencies": {
+    "closure-library": "~1.43629075.2"
   }
 }

@@ -17,10 +17,11 @@ var pathUtil = require('./lib/pathutil');
 var dirtreeTraversal = require('dirtree-traversal');
 var ModuleRegistry = require('./lib/module_registry');
 var Promise = require('node-promise');
-var DefaultDepsParser = require('./lib/default-deps-parser');
+var DepsParser = require('./lib/deps-parser');
 var DepsJsGenerator = require('./lib/deps-js-generator');
-var closurePattern = require('./lib/closure-pattern');
+var closurePattern = require('./lib/patterns/closure-pattern');
 var DepsCache = require('./lib/deps-cache');
+var amdPattern = require('./lib/patterns/amd-pattern');
 
 
 /**
@@ -48,33 +49,106 @@ function trimComment(str) {
 
 
 /**
+ * Resolve dependencies of modules.
  * @constructor
+ * @param {{
+ *   root : (string|Array),
+ *   excludes : RegExp,
+ *   depsJsPath : (string|undefined),
+ *   writeDepsJs : (boolean|undefined),
+ *   pattern : (Pattern|undefined),
+ *   depsCachePath : (string|undefined),
+ *   depsJsGenerator : (Function|undefined)
+ * }}
  */
 function ClosureDepsResolver (options) {
+  /**
+   * The root location of the modules.
+   * @private
+   * @type {Array.<string>}
+   */
   this._root = !Array.isArray(options.root)? [pathUtil.resolve(options.root) + '/'] : options.root.map(function(root) {
     return pathUtil.resolve(root);
   });
+
+  /**
+   * A Regular Expression that is used to exclude files from the directory tree.
+   * @private
+   * @type {RegExp}
+   */
   this._excludes = options.excludes;
+
+  /**
+   * Object which reserve filename and Module set.
+   * @private
+   * @type {Object}
+   */
   this._moduleMap = {};
+
+  /**
+   * The path for the location of an auto generated dependency file.
+   * @private
+   * @type {string}
+   */
   this._closureDepsPath = options.depsJsPath || temp.mkdirSync('_gcl_deps') + '/deps.js';
+
+  /**
+   * The registries which is used to search modules from filename.
+   * @private
+   * @type {ModuleRegistry}
+   */
   this._moduleRegistry = new ModuleRegistry();
-  this._writeDeps = options.writeDepsJs;
-  var memo = {};
-  this._moduleDependencies = new DependencyResolver(this._moduleMap, memo);
+
+  /**
+   * The flag which is used to decide generate dependency file.
+   * @private
+   * @type {boolean}
+   */
+  this._writeDeps = !!options.writeDepsJs;
+
+  /**
+   * Dependency resolver.
+   * @private
+   * @type {DependencyResolver}
+   */
+  this._moduleDependencies = new DependencyResolver(this._moduleMap);
+
   var pattern;
   if (!options.pattern) {
-    pattern = closurePattern.pattern;
+    pattern = closurePattern;
   } else {
     pattern = options.pattern;
   }
   pattern.compile();
-  this._depsCache = new DepsCache(options.depsCachePath);
-  this._closureDepsParser = new DefaultDepsParser(this._moduleRegistry, this._depsCache, pattern);
+
+  /**
+   * Control the cache file which is written the all modules requirements and provision.
+   * If options 'onMemoryCache' is true, the cache file is kept on memory and not written on disk.
+   * @private
+   * @type {DepsCache}
+   */
+  this._depsCache = new DepsCache(options.onMemoryCache, options.depsCachePath);
+
+  /**
+   * The parser of dependencies.
+   * @private
+   * @type {DepsParser}
+   */
+  this._depsParser = new DepsParser(this._moduleRegistry, this._depsCache, pattern);
+
+  /**
+   * Dependency file generator.
+   * @private
+   * @type {DepsJsGenerator}
+   */
   this._depsJsGenerator = new (options.depsJsGenerator || DepsJsGenerator)(this._closureDepsPath);
 }
 
 
 Object.defineProperties(ClosureDepsResolver.prototype, {
+  /**
+   * @return {string}
+   */
   depsJsPath : {
     get : function() {
       return this._closureDepsPath;
@@ -85,43 +159,67 @@ Object.defineProperties(ClosureDepsResolver.prototype, {
 });
 
 
+/**
+ * Do resolve dependencies async.
+ * @param {boolean=} opt_onlyMains
+ * @returns {Promise.Promise}
+ */
 ClosureDepsResolver.prototype.resolve = function(opt_onlyMains) {
-  return Promise.all(this._root.map(function(path) {
-    return dirtreeTraversal(path, function(filename, cb) {
-      this._process(filename, cb);
-    }.bind(this), this._excludes, /\.js/);
-  }, this))
-    .then(this._resolveDependency.bind(this))
-    .then(function() {
-      if (this._writeDeps) {
-        return this._depsJsGenerator().generate(this._moduleMap);
-      }
-    }.bind(this)).then(function() {
-      if (opt_onlyMains) {
-        var ret = {};
-        var items = Object.keys(this._moduleMap);
-        for (var i = 0, len = items.length; i < len; i++) {
-          var key = items[i];
-          var item = this._moduleMap[key];
-          if (item.getProvidedModules().length === 0) {
-            ret[key] = item;
-          }
-        }
-        return ret;
-      } else {
-        return this._moduleMap;
-      }
-    }.bind(this));
+  return this._workTree().then(function() {
+    return this._doResolve(opt_onlyMains);
+  }.bind(this));
 };
 
 
+/**
+ * Do resolve dependencies sync.
+ * @param {boolean=} opt_onlyMains
+ * @returns {Object}
+ */
 ClosureDepsResolver.prototype.resolveSync = function(opt_onlyMains) {
-  this._root.forEach(function() {
-    dirtreeTraversal.sync(this._root, function(filename) {
+  this._workTreeSync();
+  return this._doResolve(opt_onlyMains);
+};
+
+
+/**
+ * Walk dir tree for search files.
+ * @private
+ * @returns {Promise.Promise}
+ */
+ClosureDepsResolver.prototype._workTree = function() {
+  return Promise.all(this._root.map(function(path) {
+    return dirtreeTraversal(path, function(filename, cb) {
+      this._process(filename, cb);
+    }.bind(this), this._excludes, /\.js$/);
+  }, this));
+};
+
+
+/**
+ * Walk dir tree sync for search files.
+ * @private
+ * @returns {Promise.Promise}
+ */
+ClosureDepsResolver.prototype._workTreeSync = function() {
+  this._root.forEach(function(root) {
+    dirtreeTraversal.sync(root, function(filename) {
       this._processSync(filename);
-    }.bind(this), this._excludes, /\.js/);
+    }.bind(this), this._excludes, /\.js$/);
   }, this);
+};
+
+
+/**
+ * Resolve each dependencies and return results.
+ * @param {boolean=} opt_onlyMains
+ * @returns {Object}
+ */
+ClosureDepsResolver.prototype._doResolve = function(opt_onlyMains) {
   this._resolveDependency();
+  if (this._writeDeps) {
+    return this._depsJsGenerator().generate(this._moduleMap);
+  }
   if (opt_onlyMains) {
     var ret = {};
     var items = Object.keys(this._moduleMap);
@@ -140,11 +238,12 @@ ClosureDepsResolver.prototype.resolveSync = function(opt_onlyMains) {
 
 
 /**
- * @override
+ * Parse module.
+ * @private
  * @param {string} filename
  */
 ClosureDepsResolver.prototype._process = function(filename, cb) {
-  this._closureDepsParser.parse(filename, function(module) {
+  this._depsParser.parse(filename, function(module) {
     this._moduleMap[filename] = module;
     cb();
   }.bind(this));
@@ -152,6 +251,7 @@ ClosureDepsResolver.prototype._process = function(filename, cb) {
 
 
 /**
+ * Parse module sync.
  * @override
  * @param {string} filename
  */
@@ -159,7 +259,7 @@ ClosureDepsResolver.prototype._processSync = function(filename) {
   var content = fs.readFileSync(filename, 'utf-8');
   var trimedContent = trimComment(content);
   var match;
-  this._moduleMap[filename] = this._closureDepsParser.parseSync(filename);
+  this._moduleMap[filename] = this._depsParser.parseSync(filename, function(){});
 };
 
 
@@ -187,6 +287,11 @@ ClosureDepsResolver.prototype._resolveDependency = function() {
 };
 
 
+/**
+ * Remove the specified module and all dependencies.
+ * @param {string} filename
+ * @param {Function} cb
+ */
 ClosureDepsResolver.prototype.remove = function(filename, cb) {
   var module = this._moduleMap[filename];
   module.getProvidedModules().forEach(function(moduleName) {
@@ -198,5 +303,6 @@ ClosureDepsResolver.prototype.remove = function(filename, cb) {
 
 module.exports = {
   Resolver : ClosureDepsResolver,
-  closurePattern : closurePattern
+  closurePattern : closurePattern,
+  amdPattern : amdPattern
 };
