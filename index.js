@@ -22,6 +22,7 @@ var DepsJsGenerator = require('./lib/deps-js-generator');
 var closurePattern = require('./lib/patterns/closure-pattern');
 var DepsCache = require('./lib/deps-cache');
 var amdPattern = require('./lib/patterns/amd-pattern');
+var Pattern = require('./lib/pattern');
 
 
 /**
@@ -304,5 +305,6 @@ ClosureDepsResolver.prototype.remove = function(filename, cb) {
 module.exports = {
   Resolver : ClosureDepsResolver,
   closurePattern : closurePattern,
-  amdPattern : amdPattern
+  amdPattern : amdPattern,
+  Pattern: Pattern
 };
