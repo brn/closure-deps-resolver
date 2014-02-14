@@ -1,15 +1,11 @@
 {
-  "author": {
-    "name": "Taketoshi Aono",
-    "email": "dobaw20@gmail.com",
-    "url": "brn"
-  },
+  "author": "Taketoshi Aono(brn) <dobaw20@gmail.com>",
   "description": "Resolve google-closure-library dependencies.",
   "repository": {
     "url": "git@github.com:brn/closure-deps-resolver.git"
   },
   "name": "closure-deps-resolver",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "private": false,
   "engines": {
     "node": "*"
@@ -26,12 +22,5 @@
   },
   "devDependencies": {
     "closure-library": "~1.43629075.2"
-  },
-  "bugs": {
-    "url": "https://github.com/brn/closure-deps-resolver/issues"
-  },
-  "readme": "ERROR: No README data found!",
-  "homepage": "https://github.com/brn/closure-deps-resolver",
-  "_id": "closure-deps-resolver@0.1.4",
-  "_from": "closure-deps-resolver@~0.1.3"
+  }
 }
