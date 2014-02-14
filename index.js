@@ -143,6 +143,11 @@ function ClosureDepsResolver (options) {
    * @type {DepsJsGenerator}
    */
   this._depsJsGenerator = new (options.depsJsGenerator || DepsJsGenerator)(this._closureDepsPath);
+
+  this._root.forEach(function(path) {
+    if (!fs.existsSync(path))
+      throw new Error(path + ' is not exists.');
+  });
 }
 
 
@@ -218,23 +223,33 @@ ClosureDepsResolver.prototype._workTreeSync = function() {
  */
 ClosureDepsResolver.prototype._doResolve = function(opt_onlyMains) {
   this._resolveDependency();
+  var promise;
   if (this._writeDeps) {
-    return this._depsJsGenerator().generate(this._moduleMap);
-  }
-  if (opt_onlyMains) {
-    var ret = {};
-    var items = Object.keys(this._moduleMap);
-    for (var i = 0, len = items.length; i < len; i++) {
-      var key = items[i];
-      var item = this._moduleMap[key];
-      if (item.getProvidedModules().length === 0) {
-        ret[key] = item;
-      }
-    }
-    return ret;
+    promise = this._depsJsGenerator.generate(this._moduleMap);
   } else {
-    return this._moduleMap;
+    var d = Promise.defer();
+    promise = d;
+    d.resolve();
   }
+  return promise.then(function() {
+    var ret;
+    if (opt_onlyMains) {
+      ret = {};
+      var items = Object.keys(this._moduleMap);
+      for (var i = 0, len = items.length; i < len; i++) {
+        var key = items[i];
+        var item = this._moduleMap[key];
+        if (item.getProvidedModules().length === 0) {
+          ret[key] = item;
+        }
+      }
+    } else {
+      ret = this._moduleMap;
+    }
+    this._moduleDependencies.clear();
+    this._moduleRegistry.clear();
+    return ret;
+  }.bind(this));
 };
 
 
@@ -282,8 +297,6 @@ ClosureDepsResolver.prototype._resolveDependency = function() {
     }
     module.setDependentModules(dep);
   }
-  this._moduleDependencies.clear();
-  this._moduleRegistry.clear();
   this._depsCache.writeCache();
 };
 
