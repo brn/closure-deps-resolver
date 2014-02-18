@@ -23,6 +23,7 @@ var closurePattern = require('./lib/patterns/closure-pattern');
 var DepsCache = require('./lib/deps-cache');
 var amdPattern = require('./lib/patterns/amd-pattern');
 var Pattern = require('./lib/pattern');
+var BASE_REG = /goog\/base.js$/;
 
 
 /**
@@ -49,6 +50,11 @@ function trimComment(str) {
 }
 
 
+function defaultAppFileResolver(filename, module) {
+  return module.getProvidedModules().length === 0 && !BASE_REG.test(filename);
+}
+
+
 /**
  * Resolve dependencies of modules.
  * @constructor
@@ -59,7 +65,8 @@ function trimComment(str) {
  *   writeDepsJs : (boolean|undefined),
  *   pattern : (Pattern|undefined),
  *   depsCachePath : (string|undefined),
- *   depsJsGenerator : (Function|undefined)
+ *   depsJsGenerator : (Function|undefined),
+ *   appFileResolver: (Function|undefined)
  * }}
  */
 function ClosureDepsResolver (options) {
@@ -113,6 +120,12 @@ function ClosureDepsResolver (options) {
    * @type {DependencyResolver}
    */
   this._moduleDependencies = new DependencyResolver(this._moduleMap);
+
+  /**
+   * @private
+   * @type {Function}
+   */
+  this._appFileResolver = options.appFileResolver || defaultAppFileResolver;
 
   var pattern;
   if (!options.pattern) {
@@ -239,7 +252,7 @@ ClosureDepsResolver.prototype._doResolve = function(opt_onlyMains) {
       for (var i = 0, len = items.length; i < len; i++) {
         var key = items[i];
         var item = this._moduleMap[key];
-        if (item.getProvidedModules().length === 0) {
+        if (this._appFileResolver(item.getFilename(), item)) {
           ret[key] = item;
         }
       }
