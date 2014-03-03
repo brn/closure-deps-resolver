@@ -24,6 +24,7 @@ var DepsCache = require('./lib/deps-cache');
 var amdPattern = require('./lib/patterns/amd-pattern');
 var Pattern = require('./lib/pattern');
 var BASE_REG = /goog\/base.js$/;
+var pathutil = require('./lib/pathutil');
 
 
 /**
@@ -185,7 +186,7 @@ Object.defineProperties(ClosureDepsResolver.prototype, {
  */
 ClosureDepsResolver.prototype.resolve = function(opt_onlyMains) {
   return this._workTree().then(function() {
-    return this._doResolve(opt_onlyMains);
+    return this._doResolve(opt_onlyMains, false);
   }.bind(this));
 };
 
@@ -197,7 +198,27 @@ ClosureDepsResolver.prototype.resolve = function(opt_onlyMains) {
  */
 ClosureDepsResolver.prototype.resolveSync = function(opt_onlyMains) {
   this._workTreeSync();
-  return this._doResolve(opt_onlyMains);
+  return this._doResolve(opt_onlyMains, true);
+};
+
+
+/**
+ * Resolve module by name.
+ * @param {string} name
+ * @returns {Promise.Promise}
+ */
+ClosureDepsResolver.prototype.resolveByName = function(name) {
+  return this.resolve(false).then(function(modules) {
+    name = pathutil.resolve(name);
+    return modules[name];
+  });
+};
+
+
+ClosureDepsResolver.prototype.resolveByNameSync = function(name) {
+  var modules = this.resolveSync();
+  name = pathutil.resolve(name);
+  return modules[name];
 };
 
 
@@ -232,37 +253,44 @@ ClosureDepsResolver.prototype._workTreeSync = function() {
 /**
  * Resolve each dependencies and return results.
  * @param {boolean=} opt_onlyMains
- * @returns {Object}
+ * @param {boolean=} opt_sync
+ * @returns {(Promise.Promise|undefined)}
  */
-ClosureDepsResolver.prototype._doResolve = function(opt_onlyMains) {
+ClosureDepsResolver.prototype._doResolve = function(opt_onlyMains, opt_sync) {
   this._resolveDependency();
   var promise;
   if (this._writeDeps) {
-    promise = this._depsJsGenerator.generate(this._moduleMap);
-  } else {
+    promise = this._depsJsGenerator.generate(this._moduleMap, opt_sync);
+  } else if (!opt_sync) {
     var d = Promise.defer();
     promise = d;
     d.resolve();
   }
-  return promise.then(function() {
-    var ret;
-    if (opt_onlyMains) {
-      ret = {};
-      var items = Object.keys(this._moduleMap);
-      for (var i = 0, len = items.length; i < len; i++) {
-        var key = items[i];
-        var item = this._moduleMap[key];
-        if (this._appFileResolver(item.getFilename(), item)) {
-          ret[key] = item;
+  var resolve = function() {
+        var ret;
+        if (opt_onlyMains) {
+          ret = {};
+          var items = Object.keys(this._moduleMap);
+          for (var i = 0, len = items.length; i < len; i++) {
+            var key = items[i];
+            var item = this._moduleMap[key];
+            if (this._appFileResolver(item.getFilename(), item)) {
+              ret[key] = item;
+            }
+          }
+        } else {
+          ret = this._moduleMap;
         }
-      }
-    } else {
-      ret = this._moduleMap;
-    }
-    this._moduleDependencies.clear();
-    this._moduleRegistry.clear();
-    return ret;
-  }.bind(this));
+        this._moduleDependencies.clear();
+        this._moduleRegistry.clear();
+        return ret;
+      }.bind(this);
+
+  if (promise) {
+    return promise.then(resolve);
+  } else {
+    return resolve();
+  }
 };
 
 
@@ -288,7 +316,7 @@ ClosureDepsResolver.prototype._processSync = function(filename) {
   var content = fs.readFileSync(filename, 'utf-8');
   var trimedContent = trimComment(content);
   var match;
-  this._moduleMap[filename] = this._depsParser.parseSync(filename, function(){});
+  this._moduleMap[filename] = this._depsParser.parseSync(filename);
 };
 
 
