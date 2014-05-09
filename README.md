@@ -38,3 +38,26 @@ If appFileOnly is not passed, return all modules.
 **cdr.Resolver.prototype.resolveSync(appFileOnly: boolean): Array.&lt;Module&gt;**  
 Synced version of `cdr.Resolver.prototype.resolve`.
 
+
+## Classes
+
+### Module
+
+**Module.prototype.getFilename(): string**  
+Return the module filename.
+
+
+**Module.prototype.getDirectRequires(): Array.&lt;string&gt**  
+Return the required module which is specified in the file(excludes indirect dependencies) filepath list.
+
+
+**Module.prototype.getRequiredModules(): Array.&lt;string&gt;**  
+Return the required module which is specified in the file(excludes indirect dependencies) module name list.
+
+
+**Module.prototype.getProvidedModules(): Array.&lt:string&gt;**  
+Return the provided module.
+
+
+**Module.prototype.getDependentModules(): Array.&lt;Module&gt;**  
+Return the all required module which is wrapped Module class.
