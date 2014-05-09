@@ -47,7 +47,7 @@ Synced version of `cdr.Resolver.prototype.resolve`.
 Return the module filename.
 
 
-**Module.prototype.getDirectRequires(): Array.&lt;string&gt**  
+**Module.prototype.getDirectRequires(): Array.&lt;string&gt;**  
 Return the required module which is specified in the file(excludes indirect dependencies) filepath list.
 
 
@@ -55,7 +55,7 @@ Return the required module which is specified in the file(excludes indirect depe
 Return the required module which is specified in the file(excludes indirect dependencies) module name list.
 
 
-**Module.prototype.getProvidedModules(): Array.&lt:string&gt;**  
+**Module.prototype.getProvidedModules(): Array.&lt;string&gt;**  
 Return the provided module.
 
 
