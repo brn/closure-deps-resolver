@@ -39,11 +39,11 @@ If appFileOnly is not passed, return all modules.
 Synced version of `cdr.Resolver.prototype.resolve`.
 
 
-**cdr.Resolver.prototype.resolveByName(filename: string): Promise.&lt;<Module>&gt;  
+**cdr.Resolver.prototype.resolveByName(filename: string): Promise.&lt;Module&gt;**  
 Resolved specified filename.
 
 
-**cdr.Resolver.prototype.resolveByNameSync(filename: string): Promise.&lt;<Module>&gt;  
+**cdr.Resolver.prototype.resolveByNameSync(filename: string): Promise.&lt;Module&gt;**  
 Synced version of `cdr.Resolver.prototype.resolveByName`.
 
 
