@@ -77,3 +77,16 @@ Return the provided module.
 
 **Module.prototype.getDependentModules(): Array.&lt;Module&gt;**  
 Return the all required module which is wrapped Module class.
+
+
+### Pattern
+
+**Pattern.prototype.addPattern(query: string, callback: function(filename: string, matches: Array, requires: Array, provides: Array), opt_context: *): void**  
+Add parser pattern of esquery, if pattern is matched with syntax tree, callback function is called.  
+callback function parameters  
+**filename** Current parsing file name.  
+**matches** The array of the matched syntax tree of esprima.  
+**requires** The array of the required module.  
+**provided** The array of the provided module.  
+More detail information. see lib/patterns/closure-pattern.js.
+
