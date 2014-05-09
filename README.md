@@ -30,11 +30,11 @@ resolver.resolve(true).then(function(modules) {
 
 ## Api
 
-**cdr.Resolver.prototype.resolve(appFileOnly: boolean): Promise.<Module>**  
+**cdr.Resolver.prototype.resolve(appFileOnly: boolean): Promise.&lt;Module&gt;**  
 Resolve specified pattern module dependecies by async. If argument appFileOnly passed, resolve only app file.  
 If appFileOnly is not passed, return all modules.
 
 
-**cdr.Resolver.prototype.resolveSync(appFileOnly: boolean): Array.<Module>**  
+**cdr.Resolver.prototype.resolveSync(appFileOnly: boolean): Array.&lt;Module&gt;**  
 Synced version of `cdr.Resolver.prototype.resolve`.
 
