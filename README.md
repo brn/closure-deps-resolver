@@ -88,5 +88,5 @@ callback function parameters
 **matches** The array of the matched syntax tree of esprima.  
 **requires** The array of the required module.  
 **provided** The array of the provided module.  
-More detail information. see lib/patterns/closure-pattern.js.
+for detail. see lib/patterns/closure-pattern.js.
 
