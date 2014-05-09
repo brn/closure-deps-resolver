@@ -4,7 +4,7 @@
 The dependency resolver for closure library style javascript modules.
 
 ## Install
-npm install `closure-deps-resolver`
+`npm install closure-deps-resolver`
 
 ## Usage
 ```javascript
