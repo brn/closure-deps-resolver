@@ -19,5 +19,11 @@ var resolver = new Resolver({
   depsCachePath: 'deps-cache', //{(string|undefined)} The dependency cache file path. default => module_deps_cache_{version}
   depsJsGenerator: function(depsPath) {}, //{(function(new:*, string):?|undefined)} deps.js file generator. This must be a constructor function.
   depsFileResolver: function(filename) {return /-main\.js/.test(filename);} //{(function(string):boolean|undefined)} The function which decide app file.
+});
+
+resolver.resolve(true).then(function(modules) {
+  for (var prop in modules) {
+    doSomething(modules[prop]);
+  }
 })
 ```
