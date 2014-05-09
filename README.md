@@ -43,7 +43,7 @@ Synced version of `cdr.Resolver.prototype.resolve`.
 Resolved specified filename.
 
 
-**cdr.Resolver.prototype.resolveByNameSync(filename: string): Promise.&lt;Module&gt;**  
+**cdr.Resolver.prototype.resolveByNameSync(filename: string): Array.&lt;Module&gt;**  
 Synced version of `cdr.Resolver.prototype.resolveByName`.
 
 
