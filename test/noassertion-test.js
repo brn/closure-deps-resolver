@@ -7,13 +7,13 @@
 var Deps = require('../index');
 var Resolver = Deps.Resolver;
 var amdPattern = Deps.amdPattern;
-
+var dir = __dirname;
 var closureDepsResolver = new Resolver({
-      root : './node_modules/closure-library',
+      root : dir + '/closure-library',
       onMemoryCache : true
     });
 
-var moduleMap = closureDepsResolver.resolveSync(true);
+var moduleMap = closureDepsResolver.resolveSync();
 for (var prop in moduleMap) {
   console.log(moduleMap[prop].getRequiredModules());
 }
