@@ -5,7 +5,7 @@
     "url": "git@github.com:brn/closure-deps-resolver.git"
   },
   "name": "closure-deps-resolver",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "private": false,
   "engines": {
     "node": "*"
