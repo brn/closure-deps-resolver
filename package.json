@@ -5,7 +5,7 @@
     "url": "git@github.com:brn/closure-deps-resolver.git"
   },
   "name": "closure-deps-resolver",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "private": false,
   "engines": {
     "node": "*"
@@ -14,11 +14,11 @@
     "node-promise": "*",
     "dirtree-traversal": "*",
     "temp": "*",
-    "esprima": "~1.0.4",
     "estraverse": "~1.4.0",
     "pkginfo": "~0.3.0",
     "node-uuid": "~1.4.1",
-    "esquery": "~0.3.0"
+    "esquery": "~0.3.0",
+    "esprima": "^1.2.2"
   },
   "devDependencies": {}
 }
