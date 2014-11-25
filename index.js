@@ -61,17 +61,6 @@ var UPPER = /[A-Z]/g;
 var SPECIFIED_MODULE_IS_NOT_EXISTS = "The specified module {0} is not exists.";
 
 
-/**
- * Remove comments.
- * @param {string} str
- * @returns {string}
- */
-function trimComment(str) {
-  return str.replace(consts.COMMENT_REG, function($0, $1) {
-    return $1 ? '' : $0;
-  });
-}
-
 
 function defaultAppFileResolver(filename, module) {
   return module.getProvidedModules().length === 0 && !BASE_REG.test(filename);
@@ -343,9 +332,6 @@ ClosureDepsResolver.prototype._process = function(filename, cb) {
  * @param {string} filename
  */
 ClosureDepsResolver.prototype._processSync = function(filename) {
-  var content = fs.readFileSync(filename, 'utf-8');
-  var trimedContent = trimComment(content);
-  var match;
   this._moduleMap[filename] = this._depsParser.parseSync(filename);
 };
 
