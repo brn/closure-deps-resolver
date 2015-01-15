@@ -15,5 +15,5 @@ var closureDepsResolver = new Resolver({
 
 var moduleMap = closureDepsResolver.resolveSync();
 for (var prop in moduleMap) {
-  console.log(moduleMap[prop].getRequiredModules());
+  console.log(moduleMap[prop].getNewestMtime());
 }
