@@ -204,6 +204,7 @@ Object.defineProperties(ClosureDepsResolver.prototype, {
  * @returns {Promise.Promise}
  */
 ClosureDepsResolver.prototype.resolve = function(opt_onlyMains) {
+  this._clean();
   return this._workTree().then(function() {
     return this._doResolve(opt_onlyMains, false);
   }.bind(this));
@@ -216,6 +217,7 @@ ClosureDepsResolver.prototype.resolve = function(opt_onlyMains) {
  * @returns {Object}
  */
 ClosureDepsResolver.prototype.resolveSync = function(opt_onlyMains) {
+  this._clean();
   this._workTreeSync();
   return this._doResolve(opt_onlyMains, true);
 };
@@ -227,6 +229,7 @@ ClosureDepsResolver.prototype.resolveSync = function(opt_onlyMains) {
  * @returns {Promise.Promise}
  */
 ClosureDepsResolver.prototype.resolveByName = function(name) {
+  this._clean();
   return this.resolve(false).then(function(modules) {
     name = pathutil.resolve(name);
     return modules[name];
@@ -235,6 +238,7 @@ ClosureDepsResolver.prototype.resolveByName = function(name) {
 
 
 ClosureDepsResolver.prototype.resolveByNameSync = function(name) {
+  this._clean();
   var modules = this.resolveSync();
   name = pathutil.resolve(name);
   return modules[name];
@@ -300,8 +304,6 @@ ClosureDepsResolver.prototype._doResolve = function(opt_onlyMains, opt_sync) {
         } else {
           ret = this._moduleMap;
         }
-        this._moduleDependencies.clear();
-        this._moduleRegistry.clear();
         return ret;
       }.bind(this);
 
@@ -355,6 +357,16 @@ ClosureDepsResolver.prototype._resolveDependency = function() {
     module.setDependentModules(dep);
   }
   this._depsCache.writeCache();
+};
+
+
+/**
+ * Clean old data structure.
+ * @private
+ */
+ClosureDepsResolver.prototype._clean = function() {
+  this._moduleDependencies.clear();
+  this._moduleRegistry.clear();
 };
 
 
