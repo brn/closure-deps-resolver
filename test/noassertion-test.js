@@ -9,11 +9,11 @@ var Resolver = Deps.Resolver;
 var amdPattern = Deps.amdPattern;
 var dir = __dirname;
 var closureDepsResolver = new Resolver({
-      root : dir + '/closure-library',
+      root : dir + '/../node_modules/closure-library',
       onMemoryCache : true
     });
 
 var moduleMap = closureDepsResolver.resolveSync();
 for (var prop in moduleMap) {
-  console.log(moduleMap[prop].getNewestMtime());
+  moduleMap[prop].genGraph('graph/' + (moduleMap[prop].getFilename().replace(/\//g, '_').replace(/\.js$/g, '.dot')));
 }
