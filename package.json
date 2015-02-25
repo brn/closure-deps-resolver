@@ -5,7 +5,7 @@
     "url": "git@github.com:brn/closure-deps-resolver.git"
   },
   "name": "closure-deps-resolver",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "private": false,
   "engines": {
     "node": "*"
@@ -21,5 +21,7 @@
     "esprima": "^1.2.2",
     "lodash": "^3.2.0"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "closure-library": "^1.43629075.2"
+  }
 }
