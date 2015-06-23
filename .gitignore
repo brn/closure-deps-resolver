@@ -3,3 +3,5 @@ node_modules
 .module_deps_cache*
 .test.js
 npm-debug.log
+.tern-project
+.tern-port
