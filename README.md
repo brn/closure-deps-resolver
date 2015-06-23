@@ -79,6 +79,9 @@ Return the provided module.
 Return the all required module which is wrapped Module class.
 
 
+**Module.prototype.getNewstMtime(): Date**  
+Return newest mtime in all dependent modules.
+
 ### Pattern
 
 **Pattern.prototype.addPattern(query: string, callback: function(filename: string, matches: Array, requires: Array, provides: Array), opt_context: *): void**  
