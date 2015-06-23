@@ -205,7 +205,7 @@ Object.defineProperties(ClosureDepsResolver.prototype, {
  */
 ClosureDepsResolver.prototype.resolve = function(opt_onlyMains) {
   this._clean();
-  return this._workTree().then(function() {
+  return this._walkTree().then(function() {
     return this._doResolve(opt_onlyMains, false);
   }.bind(this));
 };
@@ -218,7 +218,7 @@ ClosureDepsResolver.prototype.resolve = function(opt_onlyMains) {
  */
 ClosureDepsResolver.prototype.resolveSync = function(opt_onlyMains) {
   this._clean();
-  this._workTreeSync();
+  this._walkTreeSync();
   return this._doResolve(opt_onlyMains, true);
 };
 
@@ -250,7 +250,7 @@ ClosureDepsResolver.prototype.resolveByNameSync = function(name) {
  * @private
  * @returns {Promise.Promise}
  */
-ClosureDepsResolver.prototype._workTree = function() {
+ClosureDepsResolver.prototype._walkTree = function() {
   return Promise.all(this._root.map(function(path) {
     return dirtreeTraversal(path, function(filename, cb) {
       this._process(filename, cb);
@@ -264,7 +264,7 @@ ClosureDepsResolver.prototype._workTree = function() {
  * @private
  * @returns {Promise.Promise}
  */
-ClosureDepsResolver.prototype._workTreeSync = function() {
+ClosureDepsResolver.prototype._walkTreeSync = function() {
   this._root.forEach(function(root) {
     dirtreeTraversal.sync(root, function(filename) {
       this._processSync(filename);
