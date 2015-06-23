@@ -79,7 +79,7 @@ Return the provided module.
 Return the all required module which is wrapped Module class.
 
 
-**Module.prototype.getNewstMtime(): Date**  
+**Module.prototype.getNewestMtime(): Date**  
 Return newest mtime in all dependent modules.
 
 ### Pattern
